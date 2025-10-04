@@ -4,7 +4,7 @@ This is the official implementation of **Tessellated Linear Model (TLM)** from t
 
 ## Overview
 
-TLM is a hierarchical approach for voice-based age estimation that combines decision trees with linear regression models. The method uses voice embeddings to predict speaker age through a tree structure where each node contains both a classifier (for routing) and a regressor (for prediction).
+Voice biometric tasks, such as age estimation require modeling the often complex relationship between voice features and the biometric variable. While deep learning models can handle such complexity, they typically require large amounts of accurately labeled data to perform well. Such data are often scarce for biometric tasks such as voice-based age prediction. On the other hand, simpler models like linear regression can work with smaller datasets but often fail to generalize to the underlying non-linear patterns present in the data. In this paper we propose the Tessellated Linear Model (TLM), a piecewise linear approach that combines the simplicity of linear models with the capacity of non-linear functions. TLM tessellates the feature space into convex regions and fits a linear model within each region. We optimize the tessellation and the linear models using a hierarchical greedy partitioning. We evaluated TLM on the TIMIT dataset on the task of age prediction from voice, where it outperformed state-of-the-art deep learning models.
 
 ## Features
 
