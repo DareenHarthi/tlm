@@ -81,10 +81,12 @@ tlm/
 ## Citation
 
 ```bibtex
-@article{tlm2025,
+@inproceedings{alharthi2025tessellated,
   title={Tessellated Linear Model for Age Prediction from Voice},
-  author={Harthi, Dareen and Singh, Rita and Rudnicky, Alexander I},
-  journal={arXiv preprint arXiv:2501.09229},
-  year={2025}
+  author={Alharthi, Dareen and Zamani, Mahsa and Raj, Bhiksha and Singh, Rita},
+  booktitle={ICASSP 2025-2025 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)},
+  pages={1--4},
+  year={2025},
+  organization={IEEE}
 }
 ```
