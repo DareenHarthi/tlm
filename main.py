@@ -52,7 +52,7 @@ def main():
     
     # Apply age-based mixup augmentation
     print("\nApplying age-based mixup augmentation...")
-    
+    X_train, y_train = shuffle(X_train, y_train)
     X_train_aug, y_train_aug = age_based_mixup(X_train, y_train)
     print(f"After augmentation: {len(X_train_aug)} training samples")
     print(f"Age range after augmentation: {y_train_aug.min():.0f} - {y_train_aug.max():.0f}")

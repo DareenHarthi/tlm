@@ -53,63 +53,107 @@ def load_data(metadata_train, metadata_eval, data_folder, embedding_dim=192):
     
     return X_train, X_test, y_train, y_test
 
-
-def age_based_mixup(X, y, alpha=0.5, num_augmentations=3):
-    """
-    Age-based mixup augmentation
+def age_based_mixup(X, y, alpha=0.5):
     
-    Args:
-        X: Input features
-        y: Age labels  
-        alpha: Mixup coefficient
-        num_augmentations: Number of augmentation rounds
     
-    Returns:
-        Augmented X and y
-    """
-    X_original = X.copy()
-    y_original = y.copy()
-    
-    X_augmented = []
-    y_augmented = []
-    
-    for seed in range(1, num_augmentations + 1):
-        # Sort by age
-        sorted_indices = np.argsort(y_original)
-        X_sorted = X_original[sorted_indices]
-        y_sorted = y_original[sorted_indices]
-
-        # Shuffle within age windows
-        window_size = 4
+    for seed in range(1, 4):
         
-        shuffle_indices = np.arange(len(X_sorted))
-        for i in range(0, len(shuffle_indices), window_size):
-            
-            window = shuffle_indices[i:i+window_size]
-            np.random.shuffle(window)
-            shuffle_indices[i:i+window_size] = window
         
-        X_shuffled = X_sorted[shuffle_indices]
-        y_shuffled = y_sorted[shuffle_indices]
-            
-        # Mixup
-        X_mixed = alpha * X_sorted + (1 - alpha) *  X_shuffled
-        y_mixed = (alpha * y_sorted + (1 - alpha) * y_shuffled).astype(int)
 
-        X_augmented.append(X_mixed)
-        y_augmented.append(y_mixed)
+
+        sorted_indices = np.argsort(y)
+        X_sorted = X[sorted_indices]
+        y_sorted = y[sorted_indices]
     
-    # Combine all augmented data
-    X_all = [X_original] + X_augmented
-    y_all = [y_original] + y_augmented
+
+        window_size = 4  
+        for i in range(0, len(X_sorted), window_size):
+#             np.random.seed(seed*5)
+            np.random.shuffle(X_sorted[i:i+window_size])
+            
+#             np.random.seed(seed*20)
+            np.random.shuffle(y_sorted[i:i+window_size])
+            
+        try:
+
+            X_mix = np.append(X_mix, alpha * X + (1 - alpha) * X_sorted,  axis=0) 
+
+            y_mix = np.append(y_mix, (alpha * y + (1 - alpha) * y_sorted).astype(int), axis=0) 
+
+        except:
+
+            X_mix = alpha * X + (1 - alpha) * X_sorted 
+
+            y_mix =  (alpha * y + (1 - alpha) * y_sorted).astype(int)
+
+          
+            
+    # Append to the orginal data
     
-    X_final = np.concatenate(X_all, axis=0)
-    y_final = np.concatenate(y_all, axis=0)
+        
+
+    X = np.append(X, X_mix, axis=0)
+    y = np.append(y, y_mix, axis=0)
     
-    # Shuffle the final dataset
-    X_final, y_final = shuffle(X_final, y_final)
+    X, y   = shuffle(X, y)
+    return X, y
+
+# def age_based_mixup(X, y, alpha=0.5, num_augmentations=3):
+#     """
+#     Age-based mixup augmentation
     
-    return X_final, y_final
+#     Args:
+#         X: Input features
+#         y: Age labels  
+#         alpha: Mixup coefficient
+#         num_augmentations: Number of augmentation rounds
+    
+#     Returns:
+#         Augmented X and y
+#     """
+#     X_original = X.copy()
+#     y_original = y.copy()
+    
+#     X_augmented = []
+#     y_augmented = []
+    
+#     for seed in range(1, num_augmentations + 1):
+#         # Sort by age
+#         sorted_indices = np.argsort(y_original)
+#         X_sorted = X_original[sorted_indices]
+#         y_sorted = y_original[sorted_indices]
+
+#         # Shuffle within age windows
+#         window_size = 4
+        
+#         shuffle_indices = np.arange(len(X_sorted))
+#         for i in range(0, len(shuffle_indices), window_size):
+            
+#             window = shuffle_indices[i:i+window_size]
+#             np.random.shuffle(window)
+#             shuffle_indices[i:i+window_size] = window
+        
+#         X_shuffled = X_sorted[shuffle_indices]
+#         y_shuffled = y_sorted[shuffle_indices]
+            
+#         # Mixup
+#         X_mixed = alpha * X_sorted + (1 - alpha) *  X_shuffled
+#         y_mixed = (alpha * y_sorted + (1 - alpha) * y_shuffled).astype(int)
+
+#         X_augmented.append(X_mixed)
+#         y_augmented.append(y_mixed)
+    
+#     # Combine all augmented data
+#     X_all = [X_original] + X_augmented
+#     y_all = [y_original] + y_augmented
+    
+#     X_final = np.concatenate(X_all, axis=0)
+#     y_final = np.concatenate(y_all, axis=0)
+    
+#     # Shuffle the final dataset
+#     X_final, y_final = shuffle(X_final, y_final)
+    
+#     return X_final, y_final
 
 def uniform_mixup(X, y, alpha=0.5):
        
