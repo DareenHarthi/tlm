@@ -30,12 +30,12 @@ def load_metadata(metadata_file):
     return metadata
 
 
-def load_data(metadata_train, metadata_eval, data_folder):
+def load_data(metadata_train, metadata_eval, data_folder, embedding_dim=192):
     """Load embeddings and labels from metadata"""
-    X_train = np.zeros((len(metadata_train), 192))
+    X_train = np.zeros((len(metadata_train), embedding_dim))
     y_train = np.zeros(len(metadata_train))
     
-    X_test = np.zeros((len(metadata_eval), 192))
+    X_test = np.zeros((len(metadata_eval), embedding_dim))
     y_test = np.zeros(len(metadata_eval))
 
     for i, (file_path, speaker_id, age) in enumerate(metadata_train):
@@ -82,19 +82,20 @@ def age_based_mixup(X, y, alpha=0.5, num_augmentations=3):
         # Shuffle within age windows
         window_size = 4
         
-        for i in range(0, len(X_sorted), window_size):
-            # Shuffle features within window
-            # np.random.seed(seed * 5)
-            np.random.shuffle(X_sorted[i:window_size + i])
+        shuffle_indices = np.arange(len(X_sorted))
+        for i in range(0, len(shuffle_indices), window_size):
             
-            # Shuffle labels within window  
-            # np.random.seed(seed * 20)
-            np.random.shuffle(y_sorted[i:window_size + i])
+            window = shuffle_indices[i:i+window_size]
+            np.random.shuffle(window)
+            shuffle_indices[i:i+window_size] = window
+        
+        X_shuffled = X_sorted[shuffle_indices]
+        y_shuffled = y_sorted[shuffle_indices]
             
         # Mixup
-        X_mixed = alpha * X_original + (1 - alpha) * X_sorted
-        y_mixed = (alpha * y_original + (1 - alpha) * y_sorted).astype(int)
-        
+        X_mixed = alpha * X_sorted + (1 - alpha) *  X_shuffled
+        y_mixed = (alpha * y_sorted + (1 - alpha) * y_shuffled).astype(int)
+
         X_augmented.append(X_mixed)
         y_augmented.append(y_mixed)
     
