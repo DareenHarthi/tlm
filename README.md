@@ -23,8 +23,8 @@ pip install -r requirements.txt
 
 Download the required data:
 
-1. **Pre-trained TLM Model**: [Download](https://drive.google.com/file/d/1Be8rCkNJRaN9-9VnFbfIhTMiUEW1FJER/view?usp=sharing)
-2. **TitaNet Embeddings for TIMIT**: [Download](https://drive.google.com/drive/folders/1u5M9c34yNk5Er9BW0oLbJRhhND5T0Z15?usp=sharing)
+1. **Pre-trained TLM Model**: [Download](https://drive.google.com/file/d/1HKaq5sS6kFOJaZXcCDsw9AF6z4NqF8Oy/view?usp=drive_link)
+2. **TitaNet Embeddings for TIMIT**: [Download](https://drive.google.com/drive/folders/1wi2kI-S3cMZ8vHZdvMiUfBHwEvnSNvLm?usp=drive_link)
 
 ## Usage
 
