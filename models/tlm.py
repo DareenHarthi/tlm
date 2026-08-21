@@ -5,6 +5,20 @@ from graphviz import Digraph
 from data_utils import  age_based_mixup
 
 
+def _fast_row_membership(A, B):
+    """Boolean mask over rows of A: True where the row also appears in B.
+
+    Numerically identical to the original
+        mask = np.zeros(len(A), bool)
+        for row in B: mask |= np.all(A == row, axis=1)
+    but O(len(A) + len(B)) instead of O(len(A) * len(B)), which is what makes
+    the classifier's sample-weighting tractable once the training set has been
+    expanded ~4x by age-based mixup.
+    """
+    A = np.ascontiguousarray(A)
+    B = np.ascontiguousarray(B)
+    dt = np.dtype([('', A.dtype)] * A.shape[1])
+    return np.isin(A.view(dt).ravel(), B.view(dt).ravel())
 
 
 class Node():
@@ -93,9 +107,8 @@ class TLM():
 
         for threshold in thresholds:
             cls_y_train = (self.y > threshold).astype(int)
-            cls_y_test = (y_test > threshold).astype(int)
 
-            if len(np.unique(cls_y_train)) < 2 or len(np.unique(cls_y_test)) < 2:
+            if len(np.unique(cls_y_train)) < 2:
                 continue
             if not use_oracle:
 
@@ -108,10 +121,10 @@ class TLM():
 
                 sample_weights = np.ones(len(self.y))
 
-                # Create a mask for the current node data
-                current_node_mask = np.zeros(len(self.y), dtype=bool)
-                for row in X_train:
-                    current_node_mask |= np.all(self.X == row, axis=1)
+                # Down-weight augmented/mixup samples that do not belong to the
+                # data currently routed into this node (the "modified training
+                # strategy" from the paper). Vectorized membership test.
+                current_node_mask = _fast_row_membership(self.X, X_train)
 
                 sample_weights[~current_node_mask] = 0.5  # Reduce weight for data outside current node
 
@@ -293,9 +306,9 @@ class TLM():
             print(f"right len = {len(y_right_train)}")
             print(f"left len = {len(y_left_train)}")
             # Train left branch
-            cond_left = np.any(left_indices_train) and np.any(left_indices_test)
-            
-            cond_right = np.any(right_indices_test) and np.any(right_indices_train)
+            cond_left = np.any(left_indices_train)
+
+            cond_right = np.any(right_indices_train)
     
             
             if cond_left:
@@ -304,15 +317,15 @@ class TLM():
                 self.node.left = TLM(self.X, self.y, max_depth=self.max_depth, split=self.split,  current_depth=self.current_depth + 1, 
                                      node_id=self.node.node_id * 2 + 1, parent_mae=self.node.test_mae)
 
-                self.node.left.train_node(X_left_train, y_left_train, X_left_test, y_left_test, 
-                                          [t for t in thresholds if t <= best_threshold])
+                self.node.left.train_node(X_left_train, y_left_train, X_left_test, y_left_test,
+                                          [t for t in thresholds if t <= best_threshold], use_oracle=use_oracle)
             if cond_right:
                 # Train right branch
                 self.node.right = TLM(self.X, self.y, max_depth=self.max_depth, split=self.split, current_depth=self.current_depth + 1, 
                                       node_id=self.node.node_id * 2 + 2, parent_mae=self.node.test_mae)
 
-                self.node.right.train_node(X_right_train, y_right_train, X_right_test, y_right_test, 
-                                           [t for t in thresholds if t > best_threshold])
+                self.node.right.train_node(X_right_train, y_right_train, X_right_test, y_right_test,
+                                           [t for t in thresholds if t > best_threshold], use_oracle=use_oracle)
         else:
             self.node.is_leaf = True
             self.node.threshold = None

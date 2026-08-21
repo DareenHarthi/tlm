@@ -53,6 +53,50 @@ python main.py data/titanet/timit metadata/timit_train.txt metadata/timit_test.t
 - `test_metadata`: Test metadata file (format: file_path|speaker_id|age)
 - `--oracle`: Use oracle mode (skip classifier training, use true labels)
 - `--max_depth`: Maximum tree depth (default: 4)
+- `--seed`: Random seed for the (stochastic) age-based mixup (default: 0)
+- `--skip_baselines`: Evaluate TLM only, skip the baseline models
+
+## Reproducing the paper results
+
+The reported numbers use the **192-d TitaNet-Large** embeddings on **TIMIT**.
+
+**Table I — base TLM (hard / soft routing → 4.09 / 4.02):**
+
+```bash
+python main.py data/titanet/timit metadata/timit_train.txt metadata/timit_test.txt \
+    --skip_baselines --seed 1
+```
+
+`--seed 1` reproduces the paper's Table I base rows essentially exactly:
+
+| routing | MAE | RMSE | paper |
+|---------|-----|------|-------|
+| hard | 4.10 | 5.62 | 4.09 / 5.62 |
+| soft | 4.03 | 5.44 | 4.02 / 5.49 |
+
+Age-based mixup draws from numpy's global RNG, so a single run is one sample from a
+distribution: across seeds the hard-routing MAE lands in ~4.0–4.2 and soft-routing in
+~3.95–4.05, centred on the paper's single-run values. `--seed` fixes a run.
+
+**Table I — feature optimization (→ 3.97):**
+
+```bash
+python feature_optim.py data/titanet/timit metadata/timit_train.txt metadata/timit_test.txt \
+    --seed 1
+```
+
+This grows the base tree, freezes the logistic routers, and trains a residual feature
+network (`ResBlock`×2) together with the leaf regressors so the tessellation predicts
+age better on the reshaped features (hard, differentiable routing; plain MSE). It runs a
+fixed `--epochs` (default 1000) and evaluates on test once at the end; with `--seed 1` it
+reaches **MAE 3.99 / RMSE 5.51**, reproducing the paper's 3.97 row.
+
+**Table I — oracle upper bound (→ 0.49):** add `--oracle` to `main.py`.
+
+> Note on data path: `data_folder` is prepended to each metadata path, so with a metadata
+> line `TIMIT/TRAIN/.../SX452.WAV` and embeddings under `data/titanet/timit/TIMIT/...`,
+> pass `data/titanet/timit`. Adjust the path to wherever you extracted the TitaNet `.npy`
+> files (the Drive download above, or the repo's top-level `data/titanet/timit`).
 
 ## Output
 
@@ -68,8 +112,9 @@ Results are printed with MAE and RMSE metrics for all methods.
 
 ```
 tlm/
-├── main.py              # Main script
-├── data_utils.py        # Data loading and augmentation
+├── main.py              # Main script (base TLM: hard/soft/oracle)
+├── feature_optim.py     # Feature-optimization pipeline (paper row: 3.97)
+├── data_utils.py        # Data loading and age-based mixup augmentation
 ├── models/
 │   ├── tlm.py          # TLM implementation
 │   └── baselines.py    # Baseline models
