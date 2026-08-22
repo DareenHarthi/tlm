@@ -15,6 +15,8 @@ Voice biometric tasks, such as age estimation require modeling the often complex
 
 ## Installation
 
+Requires Python 3.9.
+
 ```bash
 pip install -r requirements.txt
 ```
