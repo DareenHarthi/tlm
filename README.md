@@ -57,11 +57,10 @@ python main.py data/titanet/timit metadata/timit_train.txt metadata/timit_test.t
     --skip_baselines --seed 1
 ```
 
-Feature optimization:
+Feature optimization (ensemble; robust to seed):
 
 ```bash
-python feature_optim.py data/titanet/timit metadata/timit_train.txt metadata/timit_test.txt \
-    --seed 1
+python feature_optim.py data/titanet/timit metadata/timit_train.txt metadata/timit_test.txt
 ```
 
 ## Arguments

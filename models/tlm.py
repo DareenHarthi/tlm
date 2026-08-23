@@ -78,6 +78,10 @@ class TLM():
         # Train the linear regression model
         self.node.regressor.fit(*age_based_mixup(X_train, y_train))
         self.node.mean = np.mean(y_train)
+        # A leaf is underdetermined when it has fewer training samples than
+        # features (age-based mixup only adds convex combinations, so it does not
+        # raise the rank); its 192-dim linear fit then extrapolates unreliably.
+        self.node.underdetermined = len(y_train) < X_train.shape[1]
 
         # Evaluate model on train data
         train_predictions = self.node.regressor.predict(X_train)
@@ -88,10 +92,15 @@ class TLM():
         
 #         self.total_error = parent_tse
 
-        # Evaluate model on test data
-        test_predictions = self.node.regressor.predict(X_test)
-        self.node.test_mae = mean_absolute_error(y_test, test_predictions)
-        self.node.test_rmse = np.sqrt(mean_squared_error(y_test, test_predictions))
+        # Evaluate model on test data (a split can route zero test samples into a
+        # node -- e.g. deep oracle splits -- so guard the empty case).
+        if len(y_test) > 0:
+            test_predictions = self.node.regressor.predict(X_test)
+            self.node.test_mae = mean_absolute_error(y_test, test_predictions)
+            self.node.test_rmse = np.sqrt(mean_squared_error(y_test, test_predictions))
+        else:
+            self.node.test_mae = float('nan')
+            self.node.test_rmse = float('nan')
 
         self.node.depth = self.current_depth
 
@@ -379,6 +388,10 @@ class TLM():
             return np.array([])
 
         if self.node.is_leaf:
+            # Oracle routing can send test samples to very small leaves whose
+            # linear regressor extrapolates wildly; fall back to the leaf mean.
+            if y_true is not None and getattr(self.node, 'underdetermined', False):
+                return np.full(X.shape[0], self.node.mean)
             return self.node.regressor.predict(X)
 
         # For oracle mode, we need true labels for routing
@@ -394,14 +407,22 @@ class TLM():
 
         predictions = np.zeros(X.shape[0])
 
-        if self.node.left and np.any(left_mask):
-            y_true_left = y_true[left_mask] if y_true is not None else None
-            predictions[left_mask] = self.node.left._predict_hard(X[left_mask], y_true_left)
-     
-        if self.node.right and np.any(right_mask):
-            y_true_right = y_true[right_mask] if y_true is not None else None
-            predictions[right_mask] = self.node.right._predict_hard(X[right_mask], y_true_right)
-      
+        # Route to each child; if a side has no child (e.g. it was never created),
+        # fall back to this node's own regressor so no sample is left unpredicted.
+        if np.any(left_mask):
+            if self.node.left is not None:
+                y_true_left = y_true[left_mask] if y_true is not None else None
+                predictions[left_mask] = self.node.left._predict_hard(X[left_mask], y_true_left)
+            else:
+                predictions[left_mask] = self.node.regressor.predict(X[left_mask])
+
+        if np.any(right_mask):
+            if self.node.right is not None:
+                y_true_right = y_true[right_mask] if y_true is not None else None
+                predictions[right_mask] = self.node.right._predict_hard(X[right_mask], y_true_right)
+            else:
+                predictions[right_mask] = self.node.regressor.predict(X[right_mask])
+
         return predictions
     
 
